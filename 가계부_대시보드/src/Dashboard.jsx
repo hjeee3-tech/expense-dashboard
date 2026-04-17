@@ -64,23 +64,28 @@ function DonutChart({ data, size=200 }) {
   )
 }
 
-function BarChart({ data, height=140 }) {
+function BarChart({ data, height=160 }) {
   if(!data.length) return <div style={{textAlign:'center',color:'#aaa',padding:'40px 0'}}>데이터 없음</div>
   const maxV = Math.max(...data.map(d=>d.value),1)
-  const barW = Math.floor(100/data.length)-2
+  const W = 480, PAD_B = 36, PAD_T = 24
+  const barW = Math.floor((W / data.length) * 0.55)
+  const gap = W / data.length
   return (
     <div style={{width:'100%',overflowX:'auto'}}>
-      <svg width="100%" height={height+40} viewBox={`0 0 100 ${height+40}`} preserveAspectRatio="none">
+      <svg width="100%" viewBox={`0 0 ${W} ${height+PAD_T+PAD_B}`}
+        preserveAspectRatio="xMidYMid meet" style={{display:'block'}}>
         {data.map((d,i)=>{
-          const bh=Math.max((d.value/maxV)*(height-10),2)
-          const x=i*(100/data.length)+1
-          const y=height-bh+5
-          const isLast=i===data.length-1
+          const bh = Math.max((d.value/maxV)*(height-4),4)
+          const cx = gap*i + gap/2
+          const x = cx - barW/2
+          const y = PAD_T + (height - bh)
+          const isLast = i===data.length-1
           return (
             <g key={i}>
-              <rect x={x} y={y} width={barW} height={bh} fill={isLast?'#FFD54F':'#81D4FA'} rx="1"/>
-              <text x={x+barW/2} y={height+16} textAnchor="middle" fontSize="4.5" fill="#888">{d.label.slice(5)}</text>
-              <text x={x+barW/2} y={y-2} textAnchor="middle" fontSize="4" fill="#555">{fmtShort(d.value)}</text>
+              <rect x={x} y={y} width={barW} height={bh}
+                fill={isLast?'#FFD54F':'#81D4FA'} rx="4"/>
+              <text x={cx} y={PAD_T+height+18} textAnchor="middle" fontSize="13" fill="#888">{d.label.slice(5)}</text>
+              <text x={cx} y={y-6} textAnchor="middle" fontSize="12" fill="#555">{fmtShort(d.value)}</text>
             </g>
           )
         })}
@@ -242,7 +247,7 @@ export default function ExpenseDashboard() {
     <>
       <style>{`
         *{box-sizing:border-box;margin:0;padding:0}
-        body{background:#F4F7FB;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans KR',sans-serif;color:#333}
+        body{background:#F4F7FB;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans KR',sans-serif;color:#333;font-size:15px}
         .app{max-width:1200px;margin:0 auto;padding:16px}
         .header{background:linear-gradient(135deg,#FFD54F 0%,#4FC3F7 100%);border-radius:16px;padding:20px 24px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
         .header h1{font-size:20px;font-weight:800;color:#333}
@@ -252,7 +257,7 @@ export default function ExpenseDashboard() {
         .month-nav button:disabled{opacity:0.3;cursor:default}
         .month-nav span{font-size:15px;font-weight:700;color:#333;min-width:84px;text-align:center}
         .tabs{display:flex;gap:6px;margin-bottom:16px;background:#fff;border-radius:14px;padding:6px;box-shadow:0 2px 8px rgba(0,0,0,0.06)}
-        .tab{flex:1;padding:10px 4px;border:none;border-radius:10px;cursor:pointer;font-size:13px;font-weight:600;transition:all 0.2s;background:transparent;color:#888}
+        .tab{flex:1;padding:10px 4px;border:none;border-radius:10px;cursor:pointer;font-size:14px;font-weight:600;transition:all 0.2s;background:transparent;color:#888}
         .tab.active{background:#FFD54F;color:#333;box-shadow:0 2px 8px rgba(255,213,79,0.35)}
         .tab:hover:not(.active){background:#F9F9F9}
         .grid3{display:grid;gap:12px;grid-template-columns:1fr}
@@ -262,11 +267,11 @@ export default function ExpenseDashboard() {
         @media(min-width:600px){.grid2{grid-template-columns:1fr 1fr}}
         .card{background:#fff;border-radius:14px;padding:18px;box-shadow:0 2px 10px rgba(0,0,0,0.06)}
         .card-full{grid-column:1/-1}
-        .card h3{font-size:12px;color:#999;font-weight:500;margin-bottom:10px;text-transform:uppercase;letter-spacing:0.5px}
+        .card h3{font-size:13px;color:#999;font-weight:500;margin-bottom:10px;letter-spacing:0.3px}
         .big-num{font-size:26px;font-weight:800;color:#333;line-height:1.1}
-        .sub-text{font-size:12px;color:#bbb;margin-top:4px}
+        .sub-text{font-size:13px;color:#bbb;margin-top:4px}
         .badges{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
-        .badge{display:inline-flex;align-items:center;gap:5px;border-radius:20px;padding:6px 12px;font-size:12px;font-weight:600}
+        .badge{display:inline-flex;align-items:center;gap:5px;border-radius:20px;padding:7px 14px;font-size:13px;font-weight:600}
         .badge-yellow{background:#FFFDE7;border:1px solid #FFD54F;color:#6B5900}
         .badge-blue{background:#E1F5FE;border:1px solid #4FC3F7;color:#01579B}
         .badge-green{background:#E8F5E9;border:1px solid #81C784;color:#1B5E20}
@@ -274,7 +279,7 @@ export default function ExpenseDashboard() {
         .section-title{font-size:14px;font-weight:700;color:#444;margin-bottom:12px;display:flex;align-items:center;gap:6px}
         .progress-bar{background:#EEEEEE;border-radius:99px;height:8px;overflow:hidden}
         .progress-fill{height:100%;border-radius:99px;transition:width 0.4s ease}
-        .list-item{display:flex;justify-content:space-between;align-items:flex-start;padding:10px 0;border-bottom:1px solid #F5F5F5}
+        .list-item{display:flex;justify-content:space-between;align-items:flex-start;padding:12px 0;border-bottom:1px solid #F5F5F5}
         .list-item:last-child{border-bottom:none}
         .tag{background:#F3F4F6;border-radius:6px;padding:2px 7px;font-size:11px;color:#666}
         .form-group{margin-bottom:12px}
