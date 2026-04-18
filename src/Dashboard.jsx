@@ -28,15 +28,15 @@ const DISPLAY_CATS = [
 const PAYMENTS = ['신용카드','체크카드','현금','이체']
 
 const CAT_COLORS = {
-  '식료품':'#66BB6A','외식':'#FF7043','배달':'#FFA726','카페/간식':'#26C6DA',
-  '대중교통':'#42A5F5','장거리교통':'#1565C0','택시':'#7E57C2',
-  '주거비':'#8D6E63','공과금':'#78909C','생활용품':'#AB47BC',
-  '의류/패션':'#EC407A','쇼핑':'#F06292','미용':'#FF80AB',
-  '병원':'#EF5350','약국/건강':'#FF8A65',
-  '문화/여가':'#FFCA28','운동':'#9CCC65','여행':'#26A69A',
-  '통신':'#BDBDBD','구독':'#FFF176','보험':'#80CBC4','교육':'#FFD54F',
-  '경조사':'#A5D6A7','이체':'#CFD8DC','기타':'#BCAAA4',
-  '식비':'#66BB6A','교통':'#42A5F5','의료':'#EF5350'
+  '식료품':'#8DC4A8','외식':'#FFC7A9','배달':'#FFD0A0','카페/간식':'#80C8D8',
+  '대중교통':'#90C0E0','장거리교통':'#7090C0','택시':'#A898D8',
+  '주거비':'#C0A898','공과금':'#A8B8C0','생활용품':'#C4A0CC',
+  '의류/패션':'#E8A0BC','쇼핑':'#F0B0C4','미용':'#FFB8D0',
+  '병원':'#E46565','약국/건강':'#FFB8A0',
+  '문화/여가':'#FFD888','운동':'#B8D08A','여행':'#80C0B8',
+  '통신':'#C4CCC8','구독':'#FFF8A0','보험':'#A8D0CC','교육':'#FFEBA4',
+  '경조사':'#C8E4D8','이체':'#C8D4DC','기타':'#C8B8B0',
+  '식비':'#8DC4A8','교통':'#90C0E0','의료':'#E46565'
 }
 
 const FIXED_CATS = ['주거비','공과금','통신','보험','구독']
@@ -109,45 +109,44 @@ function fmtShort(n) {
   return n.toLocaleString()
 }
 
-// ── 밸런스 게이지 ──────────────────────────────────────────────
+// ── 밸런스 게이지 (반원형 스피드미터) ─────────────────────────
 function GaugeChart({ income, expense }) {
   const ratio = income > 0 ? expense / income : (expense > 0 ? 1.5 : 0)
-  const clampedRatio = Math.min(ratio, 1.5)
-  const pct = clampedRatio / 1.5
-  const cx = 100, cy = 88, r = 68
-  const startAngle = -210, sweepAngle = 240
+  const pct = Math.min(ratio, 1.5) / 1.5
+  const cx = 100, cy = 85, r = 68, ni = r - 14
 
-  const polarXY = (deg, radius) => {
-    const rad = (deg - 90) * Math.PI / 180
-    return { x: cx + radius * Math.cos(rad), y: cy + radius * Math.sin(rad) }
+  const pt = (deg, rad) => {
+    const a = (deg - 90) * Math.PI / 180
+    return { x: (cx + rad * Math.cos(a)).toFixed(1), y: (cy + rad * Math.sin(a)).toFixed(1) }
   }
-  const arcPath = (a1, a2, radius) => {
-    const s = polarXY(a1, radius), e = polarXY(a2, radius)
-    const large = (a2-a1) > 180 ? 1 : 0
-    return `M${s.x},${s.y} A${radius},${radius} 0 ${large} 1 ${e.x},${e.y}`
+  const arc = (d1, d2, rad) => {
+    const s = pt(d1, rad), e = pt(d2, rad)
+    const sweep = ((d2 - d1) % 360 + 360) % 360
+    return `M${s.x},${s.y} A${rad},${rad} 0 ${sweep > 180 ? 1 : 0} 1 ${e.x},${e.y}`
   }
 
-  const needleAngle = startAngle + pct * sweepAngle
-  const needleTip = polarXY(needleAngle, 52)
-  const color = ratio < 0.7 ? '#4CAF50' : ratio < 0.9 ? '#FF9800' : ratio < 1.0 ? '#FF5722' : '#F44336'
-  const statusLabel = ratio < 0.7 ? '안전' : ratio < 0.9 ? '주의' : ratio < 1.0 ? '경고' : '위험'
+  // 반원: 왼쪽(270°) → 오른쪽(449.9°≈90°) 시계방향, 상단 통과
+  const nd = 270 + pct * 179.9
+  const tip = pt(nd, ni)
+  const color = ratio < 0.7 ? '#6BBF9A' : ratio < 0.9 ? '#F4A858' : ratio < 1.0 ? '#F08858' : '#E46565'
+  const label = ratio < 0.7 ? '안전' : ratio < 0.9 ? '주의' : ratio < 1.0 ? '경고' : '위험'
 
   return (
     <div style={{textAlign:'center'}}>
-      <svg width="200" height="110" viewBox="0 0 200 110">
-        <path d={arcPath(startAngle, startAngle+sweepAngle, r)} fill="none" stroke="#EEE" strokeWidth="14"/>
-        <path d={arcPath(startAngle, startAngle+sweepAngle*0.47, r)} fill="none" stroke="#4CAF50" strokeWidth="12" opacity="0.8"/>
-        <path d={arcPath(startAngle+sweepAngle*0.47, startAngle+sweepAngle*0.6, r)} fill="none" stroke="#FF9800" strokeWidth="12" opacity="0.8"/>
-        <path d={arcPath(startAngle+sweepAngle*0.6, startAngle+sweepAngle*0.73, r)} fill="none" stroke="#FF5722" strokeWidth="12" opacity="0.8"/>
-        <path d={arcPath(startAngle+sweepAngle*0.73, startAngle+sweepAngle, r)} fill="none" stroke="#F44336" strokeWidth="12" opacity="0.8"/>
-        <line x1={cx} y1={cy} x2={needleTip.x} y2={needleTip.y} stroke="#333" strokeWidth="3" strokeLinecap="round"/>
-        <circle cx={cx} cy={cy} r="6" fill="#333"/>
-        <circle cx={cx} cy={cy} r="3" fill="#fff"/>
-        <text x="22" y="100" fontSize="9" fill="#4CAF50" fontWeight="700">Safe</text>
-        <text x="165" y="100" fontSize="9" fill="#F44336" fontWeight="700">Danger</text>
+      <svg width="210" height="108" viewBox="0 0 210 108">
+        <path d={arc(270, 449.9, r)} fill="none" stroke="#EEEEEE" strokeWidth="16"/>
+        <path d={arc(270, 354.6, r)} fill="none" stroke="#6BBF9A" strokeWidth="14" opacity="0.85"/>
+        <path d={arc(354.6, 378, r)} fill="none" stroke="#F4A858" strokeWidth="14" opacity="0.85"/>
+        <path d={arc(378, 401.4, r)} fill="none" stroke="#F08858" strokeWidth="14" opacity="0.85"/>
+        <path d={arc(401.4, 449.9, r)} fill="none" stroke="#E46565" strokeWidth="14" opacity="0.85"/>
+        <line x1={cx} y1={cy} x2={tip.x} y2={tip.y} stroke="#333" strokeWidth="3" strokeLinecap="round"/>
+        <circle cx={cx} cy={cy} r="7" fill="#333"/>
+        <circle cx={cx} cy={cy} r="4" fill="#fff"/>
+        <text x="14" y="104" fontSize="11" fill="#6BBF9A" fontWeight="700">Safe</text>
+        <text x="148" y="104" fontSize="11" fill="#E46565" fontWeight="700">Danger</text>
       </svg>
-      <div style={{fontSize:'13px',fontWeight:'700',color,marginTop:'-4px'}}>{statusLabel} · {Math.round(ratio*100)}%</div>
-      <div style={{fontSize:'11px',color:'#bbb',marginTop:'2px'}}>수입 대비 지출 비율</div>
+      <div style={{fontSize:'15px',fontWeight:'800',color,marginTop:'4px'}}>{label} · {Math.round(ratio*100)}%</div>
+      <div style={{fontSize:'12px',color:'#999',marginTop:'3px'}}>수입 대비 지출 비율</div>
     </div>
   )
 }
@@ -156,15 +155,15 @@ function GaugeChart({ income, expense }) {
 function StatusMessage({ income, expense, impulseAmt }) {
   const ratio = income > 0 ? expense / income : 0
   const msgs = {
-    impulse: { bg:'#FFF3E0', border:'#FFAB91', color:'#BF360C', icon:'🛒',
+    impulse: { bg:'#FFF5EE', border:'#FFC7A9', color:'#A04828', icon:'🛒',
       text:`잠깐! 충동소비가 ${fmtShort(impulseAmt)}을 넘었어요. 이건 정말 필요해서 산 건가요, 아니면 기분 때문인가요?` },
-    danger:  { bg:'#FFEBEE', border:'#EF9A9A', color:'#B71C1C', icon:'🚨',
+    danger:  { bg:'#FFF0F0', border:'#F0B8B8', color:'#A03030', icon:'🚨',
       text:'비상사태! 미래의 나에게서 돈을 빌려 쓰고 있습니다. 당장 결제창을 닫으세요.' },
-    warning: { bg:'#FFF3E0', border:'#FF9800', color:'#E65100', icon:'🔶',
+    warning: { bg:'#FFF5EE', border:'#F4A858', color:'#9A5020', icon:'🔶',
       text:'수입의 90%를 돌파했어요. 이번 주말 외식은 냉장고 파먹기로 대체해보는 건 어떨까요?' },
-    caution: { bg:'#FFF8E1', border:'#FFD54F', color:'#6B5900', icon:'⚠️',
+    caution: { bg:'#FFFBF0', border:'#FFEBA4', color:'#6B5900', icon:'⚠️',
       text:'지출 속도가 빨라지고 있어요. 잠시 멈추고 필수 지출인지 확인해보세요.' },
-    safe:    { bg:'#E8F5E9', border:'#81C784', color:'#1B5E20', icon:'✅',
+    safe:    { bg:'#EEF8F4', border:'#A4C9B8', color:'#2D6B50', icon:'✅',
       text:`훌륭한 페이스입니다! 수입의 ${Math.round(ratio*100)}%만 쓰고 있어요. 이대로라면 충분히 저축할 수 있어요.` },
   }
   const key = impulseAmt >= 100000 ? 'impulse' : ratio >= 1.0 ? 'danger' : ratio >= 0.9 ? 'warning' : ratio >= 0.7 ? 'caution' : income > 0 ? 'safe' : null
@@ -259,11 +258,11 @@ function CalendarHeatmap({ expenses, year, month }) {
     const isPast = new Date(year, month-1, day) < new Date(today.getFullYear(), today.getMonth(), today.getDate())
     if(!isPast && !isToday) return '#F5F5F5'
     const amt = dayMap[day]
-    if(!amt) return '#A5D6A7'
-    if(amt < median*0.4) return '#C8E6C9'
-    if(amt < median) return '#FFF9C4'
-    if(amt < median*2) return '#FFCC80'
-    return '#EF9A9A'
+    if(!amt) return '#C8E4D8'
+    if(amt < median*0.4) return '#C8E8D8'
+    if(amt < median) return '#FFFBE8'
+    if(amt < median*2) return '#FFD8B0'
+    return '#F0B8B8'
   }
 
   const cells = []
@@ -274,17 +273,17 @@ function CalendarHeatmap({ expenses, year, month }) {
 
   return (
     <div>
-      <div style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:'3px',marginBottom:'5px'}}>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:'4px',marginBottom:'6px'}}>
         {['일','월','화','수','목','금','토'].map(d=>(
-          <div key={d} style={{textAlign:'center',fontSize:'10px',color:'#aaa',fontWeight:'600'}}>{d}</div>
+          <div key={d} style={{textAlign:'center',fontSize:'13px',color:'#777',fontWeight:'700'}}>{d}</div>
         ))}
       </div>
-      <div style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:'3px'}}>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:'4px'}}>
         {cells.map((day,i)=>(
           <div key={i} title={day?`${day}일: ${dayMap[day]?dayMap[day].toLocaleString()+'원':'무지출 🎉'}`:''} style={{
-            aspectRatio:'1',borderRadius:'4px',background:getColor(day),
+            height:'38px',borderRadius:'6px',background:getColor(day),
             display:'flex',alignItems:'center',justifyContent:'center',
-            fontSize:'9px',color:'#777',cursor:day?'default':'default',
+            fontSize:'13px',fontWeight:'600',color:'#444',
             outline:isThisToday(day)?'2px solid #333':'none',
             outlineOffset:'1px',
           }}>
@@ -293,10 +292,10 @@ function CalendarHeatmap({ expenses, year, month }) {
         ))}
       </div>
       <div style={{display:'flex',gap:'10px',marginTop:'8px',fontSize:'11px',color:'#888',flexWrap:'wrap',alignItems:'center'}}>
-        <span><span style={{color:'#A5D6A7',fontWeight:'700'}}>●</span> 무지출</span>
-        <span><span style={{color:'#FFF9C4',fontWeight:'700',textShadow:'0 0 1px #aaa'}}>●</span> 소액</span>
-        <span><span style={{color:'#FFCC80',fontWeight:'700'}}>●</span> 보통</span>
-        <span><span style={{color:'#EF9A9A',fontWeight:'700'}}>●</span> 과소비</span>
+        <span><span style={{color:'#C8E4D8',fontWeight:'700'}}>●</span> 무지출</span>
+        <span><span style={{color:'#FFFBE8',fontWeight:'700',textShadow:'0 0 1px #aaa'}}>●</span> 소액</span>
+        <span><span style={{color:'#FFD8B0',fontWeight:'700'}}>●</span> 보통</span>
+        <span><span style={{color:'#F0B8B8',fontWeight:'700'}}>●</span> 과소비</span>
       </div>
     </div>
   )
@@ -336,19 +335,19 @@ function BurndownChart({ expenses, totalBudget, year, month }) {
 
   return (
     <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{display:'block'}}>
-      <line x1={PL} y1={budgetY} x2={W-PR} y2={budgetY} stroke="#EF5350" strokeWidth="1" strokeDasharray="4,4" opacity="0.7"/>
-      <text x={W-PR+2} y={budgetY-3} fontSize="8" fill="#EF5350">예산 {fmtShort(totalBudget)}</text>
-      <polyline points={idealPts} fill="none" stroke="#81C784" strokeWidth="1.5" strokeDasharray="6,3" opacity="0.6"/>
-      <polyline points={actualPts} fill="none" stroke={overBudget?'#EF5350':'#4FC3F7'} strokeWidth="2.5" strokeLinejoin="round"/>
+      <line x1={PL} y1={budgetY} x2={W-PR} y2={budgetY} stroke="#E46565" strokeWidth="1" strokeDasharray="4,4" opacity="0.7"/>
+      <text x={W-PR+2} y={budgetY-3} fontSize="8" fill="#E46565">예산 {fmtShort(totalBudget)}</text>
+      <polyline points={idealPts} fill="none" stroke="#A4C9B8" strokeWidth="1.5" strokeDasharray="6,3" opacity="0.6"/>
+      <polyline points={actualPts} fill="none" stroke={overBudget?'#E46565':'#AAD0E9'} strokeWidth="2.5" strokeLinejoin="round"/>
       {todayDay<=daysInMonth && (
-        <circle cx={xs(todayDay)} cy={ys(cumulative[todayDay])} r="4.5" fill={overBudget?'#EF5350':'#4FC3F7'}/>
+        <circle cx={xs(todayDay)} cy={ys(cumulative[todayDay])} r="4.5" fill={overBudget?'#E46565':'#AAD0E9'}/>
       )}
       <text x={PL} y={H-4} fontSize="9" fill="#bbb">1일</text>
       <text x={PL+iW/2} y={H-4} fontSize="9" fill="#bbb" textAnchor="middle">{Math.round(daysInMonth/2)}일</text>
       <text x={W-PR} y={H-4} fontSize="9" fill="#bbb" textAnchor="end">{daysInMonth}일</text>
-      <line x1={PL} y1={PT-8} x2={PL+18} y2={PT-8} stroke="#81C784" strokeWidth="1.5" strokeDasharray="5,3"/>
+      <line x1={PL} y1={PT-8} x2={PL+18} y2={PT-8} stroke="#A4C9B8" strokeWidth="1.5" strokeDasharray="5,3"/>
       <text x={PL+22} y={PT-4} fontSize="9" fill="#888">권장 속도</text>
-      <line x1={PL+80} y1={PT-8} x2={PL+98} y2={PT-8} stroke="#4FC3F7" strokeWidth="2"/>
+      <line x1={PL+80} y1={PT-8} x2={PL+98} y2={PT-8} stroke="#AAD0E9" strokeWidth="2"/>
       <text x={PL+102} y={PT-4} fontSize="9" fill="#888">실제 지출</text>
     </svg>
   )
@@ -360,7 +359,7 @@ function RunwayGauge({ cash, monthlyAvg }) {
   const months = cash / monthlyAvg
   const days = Math.round(months * 30)
   const pct = Math.min(months / 6, 1)
-  const color = months < 1 ? '#F44336' : months < 3 ? '#FF9800' : '#4CAF50'
+  const color = months < 1 ? '#E46565' : months < 3 ? '#F4A858' : '#6BBF9A'
   const msg = months < 1 ? '⚠️ 위기! 즉시 지출을 줄이세요'
     : months < 3 ? '⚡ 3개월 미만 — 절약이 필요해요'
     : '✅ 안정적인 런웨이'
@@ -384,7 +383,7 @@ function RunwayGauge({ cash, monthlyAvg }) {
 // ── 배터리 차트 ──────────────────────────────────────────────
 function BatteryBar({ used, total, label, color }) {
   const pct = total > 0 ? Math.min(Math.round(used/total*100), 100) : 0
-  const c = color || (pct > 80 ? '#F44336' : pct > 50 ? '#FF9800' : '#4CAF50')
+  const c = color || (pct > 80 ? '#E46565' : pct > 50 ? '#F4A858' : '#6BBF9A')
   return (
     <div style={{marginBottom:'12px'}}>
       <div style={{display:'flex',justifyContent:'space-between',fontSize:'12px',marginBottom:'5px'}}>
@@ -410,7 +409,7 @@ function BatteryBar({ used, total, label, color }) {
 function SavingsGoal({ current, target, label }) {
   if(!target) return null
   const pct = Math.min(Math.round(current/target*100), 100)
-  const color = pct >= 100 ? '#4CAF50' : pct >= 50 ? '#FF9800' : '#4FC3F7'
+  const color = pct >= 100 ? '#6BBF9A' : pct >= 50 ? '#F4A858' : '#AAD0E9'
   const steps = 10
   return (
     <div>
@@ -494,17 +493,17 @@ function WishlistWidget({ wishlist, setWishlist }) {
             </div>
             <div style={{textAlign:'center',minWidth:'80px'}}>
               {expired ? (
-                <div style={{fontSize:'11px',color:'#4CAF50',fontWeight:'700'}}>⏰ 24시간 완료!</div>
+                <div style={{fontSize:'11px',color:'#6BBF9A',fontWeight:'700'}}>⏰ 24시간 완료!</div>
               ) : (
                 <>
-                  <div style={{fontSize:'11px',color:'#FF9800',fontWeight:'700'}}>{rem}</div>
+                  <div style={{fontSize:'11px',color:'#F4A858',fontWeight:'700'}}>{rem}</div>
                   <div style={{fontSize:'10px',color:'#bbb'}}>남음</div>
                 </>
               )}
             </div>
             <div style={{display:'flex',gap:'4px'}}>
               {expired && (
-                <button onClick={()=>remove(w.id,true)} style={{background:'#E8F5E9',border:'none',borderRadius:'6px',padding:'5px 8px',fontSize:'11px',cursor:'pointer',color:'#2E7D32'}}>구매</button>
+                <button onClick={()=>remove(w.id,true)} style={{background:'#EEF8F4',border:'none',borderRadius:'6px',padding:'5px 8px',fontSize:'11px',cursor:'pointer',color:'#2D6B50'}}>구매</button>
               )}
               <button onClick={()=>remove(w.id,false)} style={{background:'#F5F5F5',border:'none',borderRadius:'6px',padding:'5px 8px',fontSize:'11px',cursor:'pointer',color:'#999'}}>삭제</button>
             </div>
@@ -529,7 +528,7 @@ function BarChart({ data, height=160 }) {
           const cx=gap*i+gap/2, x=cx-barW/2, y=PAD_T+(height-bh)
           return (
             <g key={i}>
-              <rect x={x} y={y} width={barW} height={bh} fill={i===data.length-1?'#FFD54F':'#81D4FA'} rx="4"/>
+              <rect x={x} y={y} width={barW} height={bh} fill={i===data.length-1?'#FFEBA4':'#C5DFF0'} rx="4"/>
               <text x={cx} y={PAD_T+height+18} textAnchor="middle" fontSize="11" fill="#888">{d.label.slice(5)}</text>
               <text x={cx} y={y-6} textAnchor="middle" fontSize="11" fill="#555">{fmtShort(d.value)}</text>
             </g>
@@ -548,7 +547,7 @@ function WeekdayChart({ data }) {
       {data.map((v,i)=>(
         <div key={i} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:'4px'}}>
           <div style={{fontSize:'10px',color:'#888'}}>{fmtShort(v)}</div>
-          <div style={{width:'100%',background:i===0||i===6?'#FFD54F':'#81D4FA',borderRadius:'4px 4px 0 0',
+          <div style={{width:'100%',background:i===0||i===6?'#FFEBA4':'#C5DFF0',borderRadius:'4px 4px 0 0',
             height:`${Math.max((v/max)*50,2)}px`,transition:'height 0.3s'}}/>
           <div style={{fontSize:'11px',color:'#666',fontWeight:i===0||i===6?'700':'400'}}>{days[i]}</div>
         </div>
@@ -754,7 +753,7 @@ export default function ExpenseDashboard() {
         *{box-sizing:border-box;margin:0;padding:0}
         body{background:#F4F7FB;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans KR',sans-serif;color:#333;font-size:15px}
         .app{max-width:1200px;margin:0 auto;padding:16px}
-        .header{background:linear-gradient(135deg,#FFD54F 0%,#4FC3F7 100%);border-radius:16px;padding:20px 24px;margin-bottom:12px}
+        .header{background:linear-gradient(135deg,#FFEBA4 0%,#AAD0E9 100%);border-radius:16px;padding:20px 24px;margin-bottom:12px}
         .header-top{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:12px}
         .header h1{font-size:20px;font-weight:800;color:#333}
         .period-btns{display:flex;gap:4px;flex-wrap:wrap}
@@ -767,7 +766,7 @@ export default function ExpenseDashboard() {
         .period-label{font-size:13px;color:rgba(0,0,0,0.5);font-weight:500}
         .tabs{display:flex;gap:6px;margin-bottom:16px;background:#fff;border-radius:14px;padding:6px;box-shadow:0 2px 8px rgba(0,0,0,0.06)}
         .tab{flex:1;padding:10px 4px;border:none;border-radius:10px;cursor:pointer;font-size:12px;font-weight:600;transition:all 0.2s;background:transparent;color:#888}
-        .tab.active{background:#FFD54F;color:#333;box-shadow:0 2px 8px rgba(255,213,79,0.35)}
+        .tab.active{background:#FFEBA4;color:#333;box-shadow:0 2px 8px rgba(255,213,79,0.35)}
         .tab:hover:not(.active){background:#F9F9F9}
         .grid3{display:grid;gap:12px;grid-template-columns:1fr}
         @media(min-width:600px){.grid3{grid-template-columns:1fr 1fr}}
@@ -775,15 +774,15 @@ export default function ExpenseDashboard() {
         .grid2{display:grid;gap:12px;grid-template-columns:1fr}
         @media(min-width:600px){.grid2{grid-template-columns:1fr 1fr}}
         .card{background:#fff;border-radius:14px;padding:18px;box-shadow:0 2px 10px rgba(0,0,0,0.06)}
-        .card h3{font-size:13px;color:#999;font-weight:500;margin-bottom:10px;letter-spacing:0.3px}
+        .card h3{font-size:13px;color:#777;font-weight:600;margin-bottom:10px;letter-spacing:0.3px}
         .big-num{font-size:26px;font-weight:800;color:#333;line-height:1.1}
-        .sub-text{font-size:13px;color:#bbb;margin-top:4px}
+        .sub-text{font-size:14px;color:#666;margin-top:4px;font-weight:500}
         .badges{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
         .badge{display:inline-flex;align-items:center;gap:5px;border-radius:20px;padding:7px 14px;font-size:13px;font-weight:600}
-        .badge-yellow{background:#FFFDE7;border:1px solid #FFD54F;color:#6B5900}
-        .badge-blue{background:#E1F5FE;border:1px solid #4FC3F7;color:#01579B}
-        .badge-green{background:#E8F5E9;border:1px solid #81C784;color:#1B5E20}
-        .badge-red{background:#FFF3E0;border:1px solid #FFAB91;color:#BF360C}
+        .badge-yellow{background:#FFFBF0;border:1px solid #FFEBA4;color:#6B5900}
+        .badge-blue{background:#EEF6FF;border:1px solid #AAD0E9;color:#2060A0}
+        .badge-green{background:#EEF8F4;border:1px solid #A4C9B8;color:#2D6B50}
+        .badge-red{background:#FFF5EE;border:1px solid #FFC7A9;color:#A04828}
         .section-title{font-size:14px;font-weight:700;color:#444;margin-bottom:12px;display:flex;align-items:center;gap:6px}
         .progress-bar{background:#EEEEEE;border-radius:99px;height:8px;overflow:hidden}
         .progress-fill{height:100%;border-radius:99px;transition:width 0.4s ease}
@@ -793,9 +792,9 @@ export default function ExpenseDashboard() {
         .form-group{margin-bottom:12px}
         .form-group label{display:block;font-size:12px;color:#888;margin-bottom:4px;font-weight:500}
         .form-group input,.form-group select,.form-group textarea{width:100%;border:1.5px solid #E5E7EB;border-radius:10px;padding:10px 12px;font-size:14px;background:#FAFAFA;transition:border 0.2s;outline:none;color:#333}
-        .form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:#FFD54F;background:#fff;box-shadow:0 0 0 3px rgba(255,213,79,0.15)}
-        .btn-primary{background:#FFD54F;border:none;border-radius:12px;padding:13px 24px;font-size:14px;font-weight:700;cursor:pointer;width:100%;transition:background 0.2s;color:#333;margin-top:4px}
-        .btn-primary:hover:not(:disabled){background:#FFC107}
+        .form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:#FFEBA4;background:#fff;box-shadow:0 0 0 3px rgba(255,213,79,0.15)}
+        .btn-primary{background:#FFEBA4;border:none;border-radius:12px;padding:13px 24px;font-size:14px;font-weight:700;cursor:pointer;width:100%;transition:background 0.2s;color:#333;margin-top:4px}
+        .btn-primary:hover:not(:disabled){background:#FFD070}
         .btn-primary:disabled{background:#EEE;color:#AAA;cursor:default}
         .btn-secondary{background:#F5F5F5;border:none;border-radius:10px;padding:10px 18px;font-size:13px;font-weight:600;cursor:pointer;transition:background 0.2s;color:#555}
         .btn-secondary:hover{background:#EEE}
@@ -803,9 +802,9 @@ export default function ExpenseDashboard() {
         .top10-item{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid #F5F5F5;font-size:13px}
         .top10-item:last-child{border-bottom:none}
         .rank-badge{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;background:#E0E0E0;color:#555}
-        .rank-badge.gold{background:#FFD54F;color:#5D4037}
-        .rank-badge.silver{background:#81D4FA;color:#01579B}
-        .rank-badge.bronze{background:#A5D6A7;color:#1B5E20}
+        .rank-badge.gold{background:#FFEBA4;color:#7A5C48}
+        .rank-badge.silver{background:#C5DFF0;color:#2060A0}
+        .rank-badge.bronze{background:#C8E4D8;color:#2D6B50}
         .ratio-bar{display:flex;height:26px;border-radius:8px;overflow:hidden;margin-top:8px}
         .ratio-item{display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:#fff}
         .budget-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #F5F5F5}
@@ -813,21 +812,21 @@ export default function ExpenseDashboard() {
         .budget-label{min-width:90px;display:flex;align-items:center;gap:6px;font-size:13px}
         .budget-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
         .budget-input{flex:1;border:1.5px solid #E5E7EB;border-radius:8px;padding:7px 10px;font-size:13px;outline:none;text-align:right;color:#333}
-        .budget-input:focus{border-color:#FFD54F}
+        .budget-input:focus{border-color:#FFEBA4}
         .form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
         @media(max-width:380px){.form-row{grid-template-columns:1fr}}
-        .error-banner{background:#FFF3F3;border:1px solid #FFCDD2;border-radius:12px;padding:14px;color:#C62828;font-size:13px;margin-bottom:14px;text-align:center}
+        .error-banner{background:#FFF3F3;border:1px solid #FFCDD2;border-radius:12px;padding:14px;color:#A03030;font-size:13px;margin-bottom:14px;text-align:center}
         .loading-wrap{text-align:center;color:#BBB;padding:60px 0;font-size:14px}
-        .guide-box{background:#FFFDE7;border:1px solid #FFD54F;border-radius:12px;padding:16px;margin-bottom:12px}
+        .guide-box{background:#FFFBF0;border:1px solid #FFEBA4;border-radius:12px;padding:16px;margin-bottom:12px}
         .guide-box h4{font-size:13px;font-weight:700;color:#6B5900;margin-bottom:8px}
-        .guide-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px dashed #FFD54F;font-size:13px}
+        .guide-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px dashed #FFEBA4;font-size:13px}
         .guide-row:last-child{border-bottom:none}
-        .trip-chip{background:#E3F2FD;border-radius:8px;padding:6px 10px;font-size:12px;color:#1565C0;margin-bottom:4px;display:block}
+        .trip-chip{background:#EEF4FF;border-radius:8px;padding:6px 10px;font-size:12px;color:#7090C0;margin-bottom:4px;display:block}
         .hist-filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;align-items:center}
         .hist-filters select,.hist-filters input{border:1.5px solid #E5E7EB;border-radius:8px;padding:7px 10px;font-size:13px;outline:none;background:#FAFAFA;color:#333}
-        .hist-filters select:focus,.hist-filters input:focus{border-color:#FFD54F}
+        .hist-filters select:focus,.hist-filters input:focus{border-color:#FFEBA4}
         .goal-input{width:100%;border:1.5px solid #E5E7EB;border-radius:8px;padding:8px 12px;font-size:13px;outline:none;color:#333;background:#FAFAFA}
-        .goal-input:focus{border-color:#FFD54F}
+        .goal-input:focus{border-color:#FFEBA4}
         .divider{height:1px;background:#F5F5F5;margin:16px 0}
       `}</style>
       <div className="app">
@@ -884,9 +883,9 @@ export default function ExpenseDashboard() {
                 <div className="section-title" style={{justifyContent:'center'}}>⚖️ 수입/지출 밸런스</div>
                 <GaugeChart income={totalInc} expense={totalExp}/>
                 <div style={{display:'flex',gap:'24px',marginTop:'10px',fontSize:'13px'}}>
-                  <div style={{textAlign:'center'}}><div style={{color:'#2E7D32',fontWeight:'700'}}>{fmtShort(totalInc)}</div><div style={{color:'#bbb',fontSize:'11px'}}>수입</div></div>
-                  <div style={{textAlign:'center'}}><div style={{color:'#E53935',fontWeight:'700'}}>{fmtShort(totalExp)}</div><div style={{color:'#bbb',fontSize:'11px'}}>지출</div></div>
-                  <div style={{textAlign:'center'}}><div style={{color:totalInc-totalExp>=0?'#2E7D32':'#E53935',fontWeight:'700'}}>{fmtShort(Math.abs(totalInc-totalExp))}</div><div style={{color:'#bbb',fontSize:'11px'}}>{totalInc-totalExp>=0?'잔액':'적자'}</div></div>
+                  <div style={{textAlign:'center'}}><div style={{color:'#2D6B50',fontWeight:'700'}}>{fmtShort(totalInc)}</div><div style={{color:'#bbb',fontSize:'11px'}}>수입</div></div>
+                  <div style={{textAlign:'center'}}><div style={{color:'#C84848',fontWeight:'700'}}>{fmtShort(totalExp)}</div><div style={{color:'#bbb',fontSize:'11px'}}>지출</div></div>
+                  <div style={{textAlign:'center'}}><div style={{color:totalInc-totalExp>=0?'#2D6B50':'#C84848',fontWeight:'700'}}>{fmtShort(Math.abs(totalInc-totalExp))}</div><div style={{color:'#bbb',fontSize:'11px'}}>{totalInc-totalExp>=0?'잔액':'적자'}</div></div>
                 </div>
               </div>
 
@@ -929,9 +928,9 @@ export default function ExpenseDashboard() {
               {totalBudget>0 && (
                 <div className="card">
                   <h3>예산 소진율</h3>
-                  <div className="big-num" style={{fontSize:'22px',color:budgetUsed>90?'#E53935':'#333'}}>{budgetUsed}%</div>
+                  <div className="big-num" style={{fontSize:'22px',color:budgetUsed>90?'#C84848':'#333'}}>{budgetUsed}%</div>
                   <div className="progress-bar" style={{marginTop:'8px'}}>
-                    <div className="progress-fill" style={{width:`${Math.min(budgetUsed,100)}%`,background:budgetUsed>90?'#EF5350':budgetUsed>70?'#FFB300':'#81C784'}}/>
+                    <div className="progress-fill" style={{width:`${Math.min(budgetUsed,100)}%`,background:budgetUsed>90?'#E46565':budgetUsed>70?'#F4B060':'#A4C9B8'}}/>
                   </div>
                   <div className="sub-text" style={{marginTop:'4px'}}>{fmt(totalExp)} / {fmt(totalBudget)}</div>
                 </div>
@@ -972,10 +971,10 @@ export default function ExpenseDashboard() {
                 <div className="section-title" style={{marginBottom:'8px',fontSize:'13px'}}>⚡ 충동소비</div>
                 <div style={{display:'flex',justifyContent:'space-between',fontSize:'13px',marginBottom:'6px'}}>
                   <span style={{color:'#666'}}>카페·배달·외식·쇼핑·의류</span>
-                  <span style={{fontWeight:'700',color:impulseRatio>30?'#E53935':'#2E7D32'}}>{fmt(impulseAmt)} ({impulseRatio}%)</span>
+                  <span style={{fontWeight:'700',color:impulseRatio>30?'#C84848':'#2D6B50'}}>{fmt(impulseAmt)} ({impulseRatio}%)</span>
                 </div>
                 <div className="progress-bar">
-                  <div className="progress-fill" style={{width:`${Math.min(impulseRatio,100)}%`,background:impulseRatio>30?'#EF5350':'#81C784'}}/>
+                  <div className="progress-fill" style={{width:`${Math.min(impulseRatio,100)}%`,background:impulseRatio>30?'#E46565':'#A4C9B8'}}/>
                 </div>
               </div>
             </div>
@@ -1008,12 +1007,12 @@ export default function ExpenseDashboard() {
                 {totalExp>0 ? (
                   <>
                     <div className="ratio-bar">
-                      {fixedAmt>0 && <div className="ratio-item" style={{width:`${Math.round(fixedAmt/totalExp*100)}%`,background:'#81C784',minWidth:'50px'}}>고정 {Math.round(fixedAmt/totalExp*100)}%</div>}
-                      <div className="ratio-item" style={{flex:1,background:'#4FC3F7',minWidth:'50px'}}>변동 {Math.round(variableAmt/totalExp*100)}%</div>
+                      {fixedAmt>0 && <div className="ratio-item" style={{width:`${Math.round(fixedAmt/totalExp*100)}%`,background:'#A4C9B8',minWidth:'50px'}}>고정 {Math.round(fixedAmt/totalExp*100)}%</div>}
+                      <div className="ratio-item" style={{flex:1,background:'#AAD0E9',minWidth:'50px'}}>변동 {Math.round(variableAmt/totalExp*100)}%</div>
                     </div>
                     <div style={{display:'flex',justifyContent:'space-between',marginTop:'10px',fontSize:'13px',gap:'8px',flexWrap:'wrap'}}>
-                      <span style={{color:'#2E7D32'}}>고정: <strong>{fmt(fixedAmt)}</strong></span>
-                      <span style={{color:'#01579B'}}>변동: <strong>{fmt(variableAmt)}</strong></span>
+                      <span style={{color:'#2D6B50'}}>고정: <strong>{fmt(fixedAmt)}</strong></span>
+                      <span style={{color:'#2060A0'}}>변동: <strong>{fmt(variableAmt)}</strong></span>
                     </div>
                     <div style={{fontSize:'11px',color:'#bbb',marginTop:'4px'}}>고정비: 주거비·공과금·통신·보험·구독</div>
                   </>
@@ -1035,7 +1034,7 @@ export default function ExpenseDashboard() {
                         <span style={{fontWeight:'600'}}>{fmt(amt)}</span>
                       </div>
                       <div className="progress-bar">
-                        <div className="progress-fill" style={{width:`${Math.round(amt/top10[0][1]*100)}%`,background:i<3?'#4FC3F7':'#FFD54F'}}/>
+                        <div className="progress-fill" style={{width:`${Math.round(amt/top10[0][1]*100)}%`,background:i<3?'#AAD0E9':'#FFEBA4'}}/>
                       </div>
                     </div>
                   </div>
@@ -1061,12 +1060,12 @@ export default function ExpenseDashboard() {
                         <span>
                           <strong>{fmt(spent)}</strong>
                           {bgt>0 && <span style={{color:'#bbb'}}> / {fmt(bgt)}</span>}
-                          {pct!=null && <span style={{marginLeft:'6px',fontSize:'12px',color:pct>100?'#E53935':pct>80?'#FF8F00':'#888'}}>{pct}%</span>}
+                          {pct!=null && <span style={{marginLeft:'6px',fontSize:'12px',color:pct>100?'#C84848':pct>80?'#F4B060':'#888'}}>{pct}%</span>}
                         </span>
                       </div>
                       {bgt>0 && (
                         <div className="progress-bar">
-                          <div className="progress-fill" style={{width:`${Math.min(pct,100)}%`,background:pct>100?'#EF5350':pct>80?'#FFB300':'#81C784'}}/>
+                          <div className="progress-fill" style={{width:`${Math.min(pct,100)}%`,background:pct>100?'#E46565':pct>80?'#F4B060':'#A4C9B8'}}/>
                         </div>
                       )}
                     </div>
@@ -1108,7 +1107,7 @@ export default function ExpenseDashboard() {
                     {e.memo && <div style={{fontSize:'11px',color:'#888',marginTop:'2px'}}>💬 {e.memo}</div>}
                   </div>
                   <div style={{textAlign:'right',flexShrink:0,paddingLeft:'10px'}}>
-                    <div style={{fontWeight:'700',fontSize:'14px',color:e.type==='수입'?'#2E7D32':e.type==='이체'?'#999':'#333'}}>
+                    <div style={{fontWeight:'700',fontSize:'14px',color:e.type==='수입'?'#2D6B50':e.type==='이체'?'#999':'#333'}}>
                       {e.type==='수입'?'+':e.type==='이체'?'↔':'-'}{fmt(e.amount)}
                     </div>
                   </div>
@@ -1164,7 +1163,7 @@ export default function ExpenseDashboard() {
               </div>
               <button className="btn-primary" type="submit" disabled={submitting}>{submitting?'저장 중...':'💾 저장하기'}</button>
               {submitMsg && (
-                <div style={{marginTop:'12px',textAlign:'center',fontSize:'13px',fontWeight:'600',color:submitMsg.includes('완료')?'#2E7D32':'#E53935'}}>{submitMsg}</div>
+                <div style={{marginTop:'12px',textAlign:'center',fontSize:'13px',fontWeight:'600',color:submitMsg.includes('완료')?'#2D6B50':'#C84848'}}>{submitMsg}</div>
               )}
             </form>
           </div>
@@ -1185,15 +1184,15 @@ export default function ExpenseDashboard() {
                     <h4>💡 방법 1. 50/30/20 법칙 (권장)</h4>
                     <div style={{fontSize:'12px',color:'#888',marginBottom:'10px'}}>월 수입의 50%는 필수지출, 30%는 자유지출, 20%는 저축/투자</div>
                     <div style={{display:'flex',gap:'8px',marginBottom:'10px',flexWrap:'wrap'}}>
-                      <input style={{flex:1,minWidth:'140px',border:'1.5px solid #FFD54F',borderRadius:'8px',padding:'8px 12px',fontSize:'13px',outline:'none',background:'#FFFDE7',color:'#333'}}
+                      <input style={{flex:1,minWidth:'140px',border:'1.5px solid #FFEBA4',borderRadius:'8px',padding:'8px 12px',fontSize:'13px',outline:'none',background:'#FFFBF0',color:'#333'}}
                         type="number" placeholder="월 수입 입력 (원)" value={guideIncome} onChange={e=>setGuideIncome(e.target.value)}/>
                       <button className="btn-secondary" onClick={apply5030}>계산하기</button>
                     </div>
                     {guideSuggest && (
                       <div style={{background:'#fff',borderRadius:'8px',padding:'12px',fontSize:'13px'}}>
                         <div className="guide-row"><span>🏠 필수지출 (50%)</span><strong>{fmt(guideSuggest.needs)}</strong></div>
-                        <div className="guide-row"><span>🎉 자유지출 (30%)</span><strong style={{color:'#FF7043'}}>{fmt(guideSuggest.wants)}</strong></div>
-                        <div className="guide-row"><span>💰 저축/투자 (20%)</span><strong style={{color:'#2E7D32'}}>{fmt(guideSuggest.savings)}</strong></div>
+                        <div className="guide-row"><span>🎉 자유지출 (30%)</span><strong style={{color:'#FFC7A9'}}>{fmt(guideSuggest.wants)}</strong></div>
+                        <div className="guide-row"><span>💰 저축/투자 (20%)</span><strong style={{color:'#2D6B50'}}>{fmt(guideSuggest.savings)}</strong></div>
                       </div>
                     )}
                   </div>
